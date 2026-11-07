@@ -5,12 +5,14 @@
 #include <HomeAssistant.h>
 #include <Ina219Monitor.h>
 #include <MosfetControl.h>
+#include <ExperimentController.h>
 #include <WifiConnection.h>
 
 MosfetControl mosfetControl(CHARGE_PIN, LOAD_PIN);
 WifiConnection wifiConnection;
 Ina219Monitor ina219Monitor(INA219_CALC_ADDRESS(INA_ADDR0, INA_ADDR1));
 HomeAssistant homeAssistant;
+ExperimentController experimentController(mosfetControl, homeAssistant);
 
 /**
  * Setup function
@@ -51,15 +53,34 @@ void loop() {
 
     const int8_t command = homeAssistant.takeCommand();
     if (command == HomeAssistant::OffCommand) {
-        mosfetControl.setState(MosfetState::Off);
+        Serial.println("Measurement command received: off");
+        homeAssistant.setMeasurementCommandStatus(false);
     } else if (command == HomeAssistant::MeasuringCommand) {
-        Serial.println("Measurement started");
+        Serial.println("Measurement command received: measuring");
+        homeAssistant.setMeasurementCommandStatus(true);
+    }
+    experimentController.handleCommand(millis(), command);
+    experimentController.update(millis());
+
+    static uint32_t lastSample = 0;
+    static bool hasReadings = false;
+    static Ina219Readings readings = {};
+    const uint32_t now = millis();
+    if (!hasReadings || now - lastSample >= EXPERIMENT_SAMPLE_INTERVAL_MS) {
+        lastSample = now;
+        readings = ina219Monitor.read();
+        hasReadings = true;
+        experimentController.processReadings(now, readings);
     }
 
     static uint32_t lastPublish = 0;
-    if (millis() - lastPublish >= 2000) {
-        lastPublish = millis();
-        homeAssistant.publishReadings(ina219Monitor.read());
+    if (hasReadings && now - lastPublish >= MQTT_PUBLISH_INTERVAL_MS) {
+        lastPublish = now;
+        printIna219Readings(readings);
+        experimentController.printStatus(now);
+        homeAssistant.publishReadings(readings);
+        homeAssistant.publishExperimentState();
+        homeAssistant.publishMeasurementCommandStatus();
     }
 
     // testMosfetControl(mosfetControl);

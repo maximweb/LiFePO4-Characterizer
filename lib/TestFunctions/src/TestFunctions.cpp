@@ -33,9 +33,7 @@ void testMosfetControl(MosfetControl& mosfetControl) {
     Serial.println(mosfetControl.setState(MosfetState::Off) ? "Success" : "Failure");
 }
 
-void testIna219Readout(Ina219Monitor& ina219) {
-    const Ina219Readings readings = ina219.read();
-
+void printIna219Readings(const Ina219Readings& readings) {
     Serial.print("Bus Voltage:   ");
     Serial.print(readings.busVoltageV);
     Serial.println(" V");
@@ -52,6 +50,9 @@ void testIna219Readout(Ina219Monitor& ina219) {
     Serial.print(readings.powerMw);
     Serial.println(" mW");
     Serial.println();
+}
 
+void testIna219Readout(Ina219Monitor& ina219) {
+    printIna219Readings(ina219.read());
     delay(2000);
 }

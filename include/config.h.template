@@ -1,0 +1,55 @@
+/**
+ * Hardware configuration
+ */
+
+// INA219 I2C address (0x44 when A0=0, A1=1)
+#define INA_ADDR0 0 // A0 pin state
+#define INA_ADDR1 1 // A1 pin state
+
+// Mosfets
+#define CHARGE_PIN D5
+#define LOAD_PIN D7
+
+/**
+ * WiFi configuration
+ */
+#define WIFI_SSID "YOUR_WIFI_SSID"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD"
+
+/**
+ * MQTT configuration
+ */
+#define MQTT_BROKER_ADDRESS "YOUR_MQTT_BROKER_IP"
+#define MQTT_BROKER_PORT 1883
+#define MQTT_USERNAME "YOUR_MQTT_USERNAME"
+#define MQTT_PASSWORD "YOUR_MQTT_PASSWORD"
+#define MQTT_PUBLISH_INTERVAL_MS 2000
+#define EXPERIMENT_SAMPLE_INTERVAL_MS 250UL
+
+/** Provisional experiment defaults; tune before running with the battery. */
+#define BATTERY_DESIGN_CAPACITY_AH 6.0f
+#define CHARGE_CV_TARGET_V 3.6f
+#define CHARGE_CV_TOLERANCE_V 0.05f
+#define CHARGE_MIN_VOLTAGE_V 3.4f
+#define CHARGE_START_CURRENT_MA 20.0f
+#define CHARGE_START_READINGS 3
+#define CHARGE_TERMINATION_C_RATE_DIVISOR 20.0f
+#define CHARGE_TERMINATION_CURRENT_MA                                                              \
+    (BATTERY_DESIGN_CAPACITY_AH * 1000.0f / CHARGE_TERMINATION_C_RATE_DIVISOR)
+#define CHARGE_TERMINATION_READINGS 3
+#define POST_CHARGE_SETTLE_MS (10UL * 60UL * 1000UL)
+#define LOAD_PERIOD_MS (30UL * 60UL * 1000UL)
+#define NO_LOAD_SETTLE_PERIOD_MS (10UL * 60UL * 1000UL)
+#define POST_CUTOFF_SETTLE_MS (30UL * 60UL * 1000UL)
+#define LOW_VOLTAGE_CUTOFF_V 2.5f
+#define LOW_VOLTAGE_CUTOFF_READINGS 3
+#define HARD_LOW_VOLTAGE_CUTOFF_V 2.0f
+#define DISCHARGE_SINGLE_SAMPLE_LIMIT_C_RATE 0.65f
+#define DISCHARGE_SUSTAINED_LIMIT_C_RATE 0.5f
+#define DISCHARGE_SUSTAINED_LIMIT_READINGS 3
+#define DISCHARGE_SINGLE_SAMPLE_LIMIT_MA                                                           \
+    (BATTERY_DESIGN_CAPACITY_AH * 1000.0f * DISCHARGE_SINGLE_SAMPLE_LIMIT_C_RATE)
+#define DISCHARGE_SUSTAINED_LIMIT_MA                                                               \
+    (BATTERY_DESIGN_CAPACITY_AH * 1000.0f * DISCHARGE_SUSTAINED_LIMIT_C_RATE)
+// Assumes the Adafruit default 0.1-ohm shunt and 320-mV range; verify the module.
+#define INA219_SHUNT_SATURATION_GUARD_MV 310.0f
