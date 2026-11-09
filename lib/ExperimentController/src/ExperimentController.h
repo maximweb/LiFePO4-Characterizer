@@ -22,6 +22,18 @@ class ExperimentController {
     /** Prints the current state and timing information to the serial monitor. */
     void printStatus(uint32_t now) const;
 
+    /** Returns whether the coulomb counter is running (from charging onward). */
+    bool hasCoulombData() const;
+
+    /** Returns whether the discharge SOC has started (first load period). */
+    bool hasStateOfCharge() const;
+
+    /** Returns net Ah since counter start; discharge positive, charge negative. */
+    float dischargedAh() const;
+
+    /** Returns the coulomb-counted SOC estimate in percent. */
+    float stateOfChargePercent() const;
+
   private:
     void transitionTo(ExperimentState state, uint32_t now);
     void finish(ExperimentState endState, uint32_t now);
@@ -37,4 +49,8 @@ class ExperimentController {
     uint8_t chargeTerminationCount = 0;
     uint8_t lowVoltageCount = 0;
     uint8_t overcurrentCount = 0;
+    bool coulombCounterStarted = false;
+    bool socCounterStarted = false;
+    float dischargedChargeAh = 0.0f;
+    uint32_t lastCoulombSampleAt = 0;
 };

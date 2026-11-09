@@ -86,6 +86,11 @@ void ExperimentController::handleCommand(uint32_t now, int8_t command) {
     chargeStartCount = 0;
     chargeTerminationCount = 0;
     lowVoltageCount = 0;
+    coulombCounterStarted = false;
+    socCounterStarted = false;
+    dischargedChargeAh = 0.0f;
+    lastCoulombSampleAt = 0;
+    homeAssistant.clearCoulombMetrics();
     if (!mosfetControl.setState(MosfetState::Charge)) {
         Serial.println("Failed to enable charger path");
         fail(now);
@@ -159,6 +164,16 @@ void ExperimentController::processReadings(uint32_t now, const Ina219Readings &r
             transitionTo(ExperimentState::Charging, now);
         }
         return;
+    }
+
+    const bool isDischargeCycleState = currentState == ExperimentState::LoadPeriod ||
+                                       currentState == ExperimentState::NoLoadSettlePeriod ||
+                                       currentState == ExperimentState::SettlingAfterLowVoltage;
+    if (coulombCounterStarted &&
+        (currentState == ExperimentState::Charging || isDischargeCycleState)) {
+        const uint32_t elapsedMs = now - lastCoulombSampleAt;
+        dischargedChargeAh += readings.currentMa * elapsedMs / 3600000000.0f;
+        lastCoulombSampleAt = now;
     }
 
     if (currentState == ExperimentState::Charging) {
@@ -252,10 +267,9 @@ void ExperimentController::printStatus(uint32_t now) const {
         Serial.printf(" | elapsed %lu s | waiting for current <= -%.0f mA",
                       (now - stateStartedAt) / 1000UL, CHARGE_START_CURRENT_MA);
     } else if (currentState == ExperimentState::Charging) {
-        Serial.printf(
-            " | elapsed %lu s | end at I in [-%.1f, 0) mA and V > %.2f V (%u samples)",
-            (now - stateStartedAt) / 1000UL, CHARGE_TERMINATION_CURRENT_MA,
-            CHARGE_MIN_VOLTAGE_V, static_cast<unsigned int>(CHARGE_TERMINATION_READINGS));
+        Serial.printf(" | elapsed %lu s | end at I in [-%.1f, 0) mA and V > %.2f V (%u samples)",
+                      (now - stateStartedAt) / 1000UL, CHARGE_TERMINATION_CURRENT_MA,
+                      CHARGE_MIN_VOLTAGE_V, static_cast<unsigned int>(CHARGE_TERMINATION_READINGS));
     }
 
     Serial.println();
@@ -264,10 +278,37 @@ void ExperimentController::printStatus(uint32_t now) const {
 void ExperimentController::transitionTo(ExperimentState state, uint32_t now) {
     currentState = state;
     stateStartedAt = now;
+    if (state == ExperimentState::Charging && !coulombCounterStarted) {
+        coulombCounterStarted = true;
+        dischargedChargeAh = 0.0f;
+        lastCoulombSampleAt = now;
+    }
     if (state == ExperimentState::LoadPeriod) {
         overcurrentCount = 0;
+        if (!socCounterStarted) {
+            // Restart at 0 so SOC and Ah refer to the discharge only.
+            socCounterStarted = true;
+            dischargedChargeAh = 0.0f;
+            lastCoulombSampleAt = now;
+        }
     }
     homeAssistant.setExperimentState(state);
+}
+
+bool ExperimentController::hasCoulombData() const { return coulombCounterStarted; }
+
+bool ExperimentController::hasStateOfCharge() const { return socCounterStarted; }
+
+float ExperimentController::dischargedAh() const { return dischargedChargeAh; }
+
+float ExperimentController::stateOfChargePercent() const {
+    float remainingFraction = 1.0f - dischargedChargeAh / BATTERY_DESIGN_CAPACITY_AH;
+    if (remainingFraction < 0.0f) {
+        remainingFraction = 0.0f;
+    } else if (remainingFraction > 1.0f) {
+        remainingFraction = 1.0f;
+    }
+    return remainingFraction * 100.0f;
 }
 
 void ExperimentController::finish(ExperimentState endState, uint32_t now) {

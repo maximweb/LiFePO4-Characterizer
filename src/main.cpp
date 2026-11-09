@@ -81,6 +81,12 @@ void loop() {
         homeAssistant.publishReadings(readings);
         homeAssistant.publishExperimentState();
         homeAssistant.publishMeasurementCommandStatus();
+        if (experimentController.hasCoulombData()) {
+            homeAssistant.publishDischargedAh(experimentController.dischargedAh());
+        }
+        if (experimentController.hasStateOfCharge()) {
+            homeAssistant.publishStateOfCharge(experimentController.stateOfChargePercent());
+        }
     }
 
     // testMosfetControl(mosfetControl);

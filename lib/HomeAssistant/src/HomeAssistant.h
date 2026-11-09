@@ -22,6 +22,15 @@ class HomeAssistant {
     /** Publishes current INA219 values. */
     void publishReadings(const Ina219Readings &readings);
 
+    /** Clears retained coulomb-counter values before a new experiment. */
+    void clearCoulombMetrics();
+
+    /** Publishes the net coulomb count in Ah. */
+    void publishDischargedAh(float dischargedAh);
+
+    /** Publishes the estimated state of charge in percent. */
+    void publishStateOfCharge(float stateOfChargePercent);
+
     /** Updates the experiment state independently from HA commands. */
     void setExperimentState(ExperimentState state);
 
@@ -49,6 +58,8 @@ class HomeAssistant {
     HASensorNumber current;
     HASensorNumber power;
     HASensorNumber loadVoltage;
+    HASensorNumber dischargedAh;
+    HASensorNumber stateOfCharge;
     HASensor experimentStateSensor;
     HASensor measurementCommandStatusSensor;
     HASelect measurementCommand;

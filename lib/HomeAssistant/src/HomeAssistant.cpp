@@ -41,6 +41,8 @@ HomeAssistant::HomeAssistant()
       shuntVoltage("shunt_voltage", HASensorNumber::PrecisionP2),
       current("current", HASensorNumber::PrecisionP3), power("power", HASensorNumber::PrecisionP2),
       loadVoltage("load_voltage", HASensorNumber::PrecisionP2),
+      dischargedAh("discharged_ah", HASensorNumber::PrecisionP3),
+      stateOfCharge("state_of_charge", HASensorNumber::PrecisionP1),
       experimentStateSensor("experiment_state"),
       measurementCommandStatusSensor("measurement_command_status"),
       measurementCommand("measurement_command") {
@@ -84,6 +86,15 @@ void HomeAssistant::begin(const char *broker, uint16_t port, const char *usernam
     loadVoltage.setStateClass("measurement");
     loadVoltage.setUnitOfMeasurement("V");
 
+    dischargedAh.setName("Discharged Charge");
+    dischargedAh.setStateClass("measurement");
+    dischargedAh.setUnitOfMeasurement("Ah");
+
+    stateOfCharge.setName("Estimated State of Charge");
+    stateOfCharge.setDeviceClass("battery");
+    stateOfCharge.setStateClass("measurement");
+    stateOfCharge.setUnitOfMeasurement("%");
+
     experimentStateSensor.setName("Experiment State");
     measurementCommandStatusSensor.setName("Measurement Command Status");
 
@@ -103,6 +114,19 @@ void HomeAssistant::publishReadings(const Ina219Readings &readings) {
     current.setValue(readings.currentMa / 1000.0f);
     power.setValue(readings.powerMw / 1000.0f);
     loadVoltage.setValue(readings.loadVoltageV);
+}
+
+void HomeAssistant::clearCoulombMetrics() {
+    static_cast<HASensor &>(dischargedAh).setValue(nullptr);
+    static_cast<HASensor &>(stateOfCharge).setValue(nullptr);
+}
+
+void HomeAssistant::publishDischargedAh(float dischargedAhValue) {
+    dischargedAh.setValue(dischargedAhValue);
+}
+
+void HomeAssistant::publishStateOfCharge(float stateOfChargePercent) {
+    stateOfCharge.setValue(stateOfChargePercent);
 }
 
 void HomeAssistant::setExperimentState(ExperimentState state) {
